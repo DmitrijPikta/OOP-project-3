@@ -1,31 +1,37 @@
 #include <initializer_list>
+#include <memory>
+#include <stdexcept>
 
-template <typename T>
+using std::out_of_range;
+
+template <typename T, typename Allocator = std::allocator<T>>
 class Vector
 {
 private:
     T *arr_;
     int capacity_;
     int size_;
+    Allocator alloc_;
 
 public:
     Vector()
     {
-        arr_ = new T[1];
         capacity_ = 1;
         size_ = 0;
+        arr_ = alloc_.allocate(capacity_);
     }
 
     Vector(std::initializer_list<T> init)
     {
         size_ = static_cast<int>(init.size());
         capacity_ = size_ > 0 ? size_ : 1;
-        arr_ = new T[capacity_];
+        arr_ = alloc_.allocate(capacity_);
 
         int i = 0;
         for (const auto &val : init)
         {
-            arr_[i++] = val;
+            alloc_.construct(arr_ + i, val);
+            i++;
         }
     }
 
@@ -33,10 +39,10 @@ public:
     {
         capacity_ = other.capacity_;
         size_ = other.size_;
-        arr_ = new T[capacity_];
+        arr_ = alloc_.allocate(capacity_);
         for (int i = 0; i < size_; i++)
         {
-            arr_[i] = other.arr_[i];
+            alloc_.construct(arr_ + i, other.arr_[i]);
         }
     }
 
@@ -50,7 +56,7 @@ public:
     ~Vector()
     {
         clear();
-        delete[] arr_;
+        alloc_.deallocate(arr_, capacity_);
     }
 
     int size() const
@@ -68,12 +74,13 @@ public:
         if (new_capacity <= capacity_)
             return;
 
-        T *new_arr = new T[new_capacity];
+        T *new_arr = alloc_.allocate(new_capacity);
         for (int i = 0; i < size_; i++)
         {
-            new_arr[i] = arr_[i];
+            alloc_.construct(new_arr + i, std::move(arr_[i]));
+            alloc_.destroy(arr_ + i);
         }
-        delete[] arr_;
+        alloc_.deallocate(arr_, capacity_);
         arr_ = new_arr;
         capacity_ = new_capacity;
     }
@@ -84,13 +91,15 @@ public:
         {
             reserve(capacity_ * 2);
         }
-        arr_[size_++] = value;
+        alloc_.construct(arr_ + size_, value);
+        size_++;
     }
 
     void pop_back()
     {
         if (size_ > 0)
         {
+            alloc_.destroy(arr_ + size_ - 1);
             size_--;
         }
     }
@@ -121,7 +130,7 @@ public:
         {
             return arr_[0];
         }
-        throw std::out_of_range("Vector is empty");
+        throw out_of_range("Vector is empty");
     }
 
     const T &front() const
@@ -130,7 +139,7 @@ public:
         {
             return arr_[0];
         }
-        throw std::out_of_range("Vector is empty");
+        throw out_of_range("Vector is empty");
     }
 
     T &back()
@@ -139,7 +148,7 @@ public:
         {
             return arr_[size_ - 1];
         }
-        throw std::out_of_range("Vector is empty");
+        throw out_of_range("Vector is empty");
     }
 
     const T &back() const
@@ -148,14 +157,14 @@ public:
         {
             return arr_[size_ - 1];
         }
-        throw std::out_of_range("Vector is empty");
+        throw out_of_range("Vector is empty");
     }
 
     void resize(int count, const T &value = T())
     {
         if (count < 0)
         {
-            throw std::out_of_range("Size of vector can not be negative");
+            throw out_of_range("Size of vector can not be negative");
         }
         if (count == size_)
         {
@@ -163,6 +172,10 @@ public:
         }
         else if (count < size_)
         {
+            for (int i = count; i < size_; i++)
+            {
+                alloc_.destroy(arr_ + i);
+            }
             size_ = count;
         }
         else
@@ -173,7 +186,7 @@ public:
             }
             for (int i = size_; i < count; i++)
             {
-                arr_[i] = value;
+                alloc_.construct(arr_ + i, value);
             }
             size_ = count;
         }
@@ -183,7 +196,7 @@ public:
     {
         if (index < 0 || index > size_)
         {
-            throw std::out_of_range("Index out of range");
+            throw out_of_range("Index out of range");
         }
 
         if (size_ == capacity_)
@@ -193,9 +206,10 @@ public:
 
         for (int i = size_; i > index; i--)
         {
-            arr_[i] = arr_[i - 1];
+            alloc_.construct(arr_ + i, std::move(arr_[i - 1]));
+            alloc_.destroy(arr_ + i - 1);
         }
-        arr_[index] = value;
+        alloc_.construct(arr_ + index, value);
         size_++;
     }
 
@@ -206,17 +220,25 @@ public:
 
     void shrink_to_fit()
     {
-        if (capacity_ > size_)
+        if (capacity_ == size_)
+            return;
+
+        T *new_arr = alloc_.allocate(size_);
+        for (int i = 0; i < size_; i++)
         {
-            reserve(size_);
+            alloc_.construct(new_arr + i, std::move(arr_[i]));
+            alloc_.destroy(arr_ + i);
         }
+        alloc_.deallocate(arr_, capacity_);
+        arr_ = new_arr;
+        capacity_ = size_;
     }
 
     void clear()
     {
         for (int i = 0; i < size_; i++)
         {
-            arr_[i].~T();
+            alloc_.destroy(arr_ + i);
         }
         size_ = 0;
     }
@@ -225,12 +247,13 @@ public:
     {
         if (index < 0 || index >= size_)
         {
-            throw std::out_of_range("Index out of range");
+            throw out_of_range("Index out of range");
         }
-
+        alloc_.destroy(arr_ + index);
         for (int i = index; i < size_ - 1; i++)
         {
-            arr_[i] = arr_[i + 1];
+            alloc_.construct(arr_ + i, std::move(arr_[i + 1]));
+            alloc_.destroy(arr_ + i + 1);
         }
         size_--;
     }
@@ -239,7 +262,7 @@ public:
     {
         if (index < 0 || index >= size_)
         {
-            throw std::out_of_range("Index out of range");
+            throw out_of_range("Index out of range");
         }
         return arr_[index];
     }
@@ -248,7 +271,7 @@ public:
     {
         if (index < 0 || index >= size_)
         {
-            throw std::out_of_range("Index out of range");
+            throw out_of_range("Index out of range");
         }
         return arr_[index];
     }
@@ -257,13 +280,14 @@ public:
     {
         if (this != &other)
         {
-            delete[] arr_;
+            clear();
+            alloc_.deallocate(arr_, capacity_);
             capacity_ = other.capacity_;
             size_ = other.size_;
-            arr_ = new T[capacity_];
+            arr_ = alloc_.allocate(capacity_);
             for (int i = 0; i < size_; i++)
             {
-                arr_[i] = other.arr_[i];
+                alloc_.construct(arr_ + i, other.arr_[i]);
             }
         }
         return *this;
@@ -273,7 +297,8 @@ public:
     {
         if (this != &other)
         {
-            delete[] arr_;
+            clear();
+            alloc_.deallocate(arr_, capacity_);
             arr_ = other.arr_;
             capacity_ = other.capacity_;
             size_ = other.size_;
@@ -288,7 +313,7 @@ public:
     {
         if (index < 0 || index >= size_)
         {
-            throw std::out_of_range("Index out of range");
+            throw out_of_range("Index out of range");
         }
         return arr_[index];
     }
@@ -297,7 +322,7 @@ public:
     {
         if (index < 0 || index >= size_)
         {
-            throw std::out_of_range("Index out of range");
+            throw out_of_range("Index out of range");
         }
         return arr_[index];
     }
@@ -389,7 +414,14 @@ public:
 
         for (int i = 0; i < count; i++)
         {
-            arr_[i] = value;
+            if (i < size_)
+            {
+                arr_[i] = value;
+            }
+            else
+            {
+                alloc_.construct(arr_ + i, value);
+            }
         }
         size_ = count;
     }
@@ -409,10 +441,11 @@ public:
 
         for (int i = size_; i > index; i--)
         {
-            arr_[i] = arr_[i - 1];
+            alloc_.construct(arr_ + i, std::move(arr_[i - 1]));
+            alloc_.destroy(arr_ + i - 1);
         }
 
-        arr_[index] = T(std::forward<Args>(args)...);
+        alloc_.construct(arr_ + index, T(std::forward<Args>(args)...));
         size_++;
     }
 
@@ -424,7 +457,7 @@ public:
             reserve(capacity_ * 2);
         }
 
-        arr_[size_] = T(std::forward<Args>(args)...);
+        alloc_.construct(arr_ + size_, T(std::forward<Args>(args)...));
         size_++;
     }
 };
