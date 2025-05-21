@@ -15,7 +15,9 @@ Method delete one element of Vector at the back. pop_back do not take anything a
 ### bool empty() const
 Method return true or false value depending on where are no elements in Vector or where are. So if size of Vector is 0, method empty() return true, if not, return false. Method do not take anything. Const garantee that Vector object is not changing in the method.
 
-Size      |Standart vector |Custom vector
+## std::vector VS Vector push_back() comparison
+
+Size      |std::vector     |Vector
 ----------|----------------|--------------
 10000     |0.0004309       |0.0004674
 100000    |0.0018539       |0.0023244
@@ -27,7 +29,29 @@ Result: standart vector container works faster
 
 Reallocations number are equal. In case of 100000000 size both vectors have reallocated 27 times. 
 
+## Program working time comparison with std::vector and Vector
 
+### std::vector
+Student number:       |100000|1000000|10000000         
+----------------------|------|-------|--------
+reading file          |0.177|1.686|16.536
+cultulating final mark|0.043|0.324|3.010
+sorting               |0.099|1.151|13.976
+dividing              |0.037|0.259|2.862
+writing               |0.397|3.769|37.880
+suma                  |0.756|7.191|74.266
+
+### Vector
+Student number:       |100000|1000000|10000000         
+----------------------|------|-------|--------
+reading file          |0.161|1.358|14.298
+cultulating final mark|0.022|0.173|1.719
+sorting               |0.057|0.737|8.987
+dividing              |0.028|0.229|2.287
+writing               |0.348|3.750|39.447
+suma                  |0.618|6.249|66.741
+
+### Result: custom Vector works faster than std::vector container
 
 
 
