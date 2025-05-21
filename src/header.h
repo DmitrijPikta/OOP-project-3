@@ -3,12 +3,14 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
-#include <vector>
+// #include <vector>
 #include <random>
 #include <fstream>
 #include <sstream>
 #include <chrono>
 #include <algorithm>
+#include "Vector.h"
+#define vector Vector
 
 using std::cin;
 using std::cout;
@@ -19,8 +21,9 @@ using std::left;
 using std::move;
 using std::setprecision;
 using std::setw;
+using std::sort;
 using std::string;
-using std::vector;
+// using std::vector;
 
 class Person
 {
