@@ -11,6 +11,8 @@
 #include <algorithm>
 #include "Vector.h"
 #define vector Vector
+#include <windows.h>
+#include <ShlObj.h>
 
 using std::cin;
 using std::cout;
@@ -98,3 +100,4 @@ void Divide_for_two_grupse(vector<Stud> &grupe, vector<Stud> &best_grupe, vector
 void Divide_for_two_grupse(vector<Stud> &grupe, vector<Stud> &worst_grupe);
 void Divide_for_two_grupse_v3(vector<Stud> &grupe, vector<Stud> &best_grupe, vector<Stud> &worst_grupe);
 void Enter_students_using_txt_file_bufer_P(vector<Stud> &grupe);
+string GetDocumentsPath();

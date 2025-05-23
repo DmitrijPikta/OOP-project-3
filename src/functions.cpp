@@ -76,14 +76,20 @@ void Print_final_mark(vector<Stud> &grupe, bool for_average_homework_mark, bool 
 	auto start = std::chrono::high_resolution_clock::now(); // Time
 	//---------------------------------------------------------------------------
 
-	string filename;
-	if (grupe.back().get_final_mark() >= 5)
+	string path;
+	if (!print_results_in_terminal)
 	{
-		filename = "Best_grupe.txt";
-	}
-	else
-	{
-		filename = "Worst_grupe.txt";
+		string filename;
+		if (grupe.back().get_final_mark() >= 5)
+		{
+			filename = "Best_grupe.txt";
+		}
+		else
+		{
+			filename = "Worst_grupe.txt";
+		}
+		path = GetDocumentsPath();
+		path = path + "\\" + filename;
 	}
 
 	int size = Get_size_for_string_printing(grupe);
@@ -116,7 +122,7 @@ void Print_final_mark(vector<Stud> &grupe, bool for_average_homework_mark, bool 
 	}
 	else
 	{
-		std::ofstream fr(filename);
+		std::ofstream fr(path);
 		fr << left << setw(size) << "Pavarde" << setw(size) << "Vardas" << "Galutinis ";
 		if (for_both_homework_mark)
 		{
@@ -143,7 +149,7 @@ void Print_final_mark(vector<Stud> &grupe, bool for_average_homework_mark, bool 
 	}
 	else
 	{
-		std::ofstream fr(filename, std::ios::app);
+		std::ofstream fr(path, std::ios::app);
 		for (int i = 0; i < grupe.size(); i++)
 		{
 			fr << grupe.at(i);
@@ -261,9 +267,25 @@ void Sort_students(vector<Stud> &grupe, string parametr)
 	//-----------------------------------------------------------------
 }
 
+string GetDocumentsPath()
+{
+	char path[MAX_PATH];
+	// CSIDL_PERSONAL is the "Documents" folder
+	if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_PERSONAL, NULL, 0, path)))
+	{
+		return string(path);
+	}
+	else
+	{
+		return "";
+	}
+}
+
 bool Generate_file_with_students(int number_of_students, int number_of_marks, string filename)
 {
-	std::ifstream fd(filename);
+	string path = GetDocumentsPath();
+	path = path + "\\" + filename;
+	std::ifstream fd(path);
 	if (fd)
 	{
 		fd.close();
@@ -280,7 +302,7 @@ bool Generate_file_with_students(int number_of_students, int number_of_marks, st
 	//---------------------------------------------------------------------------
 	auto start = std::chrono::high_resolution_clock::now(); // Time
 	//---------------------------------------------------------------------------
-	std::ofstream fr(filename);
+	std::ofstream fr(path);
 
 	fr << left << setw(20) << "Vardas" << setw(20) << "Pavarde";
 	for (int i = 0; i < number_of_marks; i++)
@@ -403,7 +425,9 @@ void Enter_students_using_txt_file_bufer_P(vector<Stud> &grupe)
 	{
 		cout << "Please enter file name" << endl;
 		cin >> file_name;
-		std::ifstream fd(file_name);
+		string path = GetDocumentsPath();
+		path = path + "\\" + file_name;
+		std::ifstream fd(path);
 
 		try
 		{
